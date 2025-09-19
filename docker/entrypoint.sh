@@ -2,11 +2,13 @@
 set -euo pipefail
 
 PORT=${PORT:-8080}
+export PORT
 
 echo "Starting Vibe Kanban on port ${PORT} (placeholder)"
 
 if command -v vibe-kanban >/dev/null 2>&1; then
-  exec vibe-kanban --port ${PORT}
+  # vibe-kanban reads port from the PORT environment variable, do not pass --port
+  exec vibe-kanban
 else
   # Start a minimal Python HTTP server that responds 200 on /health
   python3 - <<'PY'
