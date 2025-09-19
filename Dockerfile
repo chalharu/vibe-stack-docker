@@ -36,6 +36,14 @@ RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh && \
 # Create non-root user
 RUN useradd -m -u 1000 runner || true
 
+# Ensure HOME is set for the non-root user and create persistent data dir
+ENV HOME=/home/runner
+RUN mkdir -p /home/runner/.local/share/vibe-kanban && \
+    chown -R 1000:1000 /home/runner/.local/share/vibe-kanban || true
+
+# Allow persistence of vibe-kanban data (mapped to $HOME/.local/share/vibe-kanban)
+VOLUME ["/home/runner/.local/share/vibe-kanban"]
+
 # Copy entrypoint
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
