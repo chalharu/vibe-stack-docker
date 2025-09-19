@@ -1,5 +1,9 @@
 name: Build and Publish
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches: ["001-vibe-kanban-kubernetes", "main"]
