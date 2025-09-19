@@ -26,6 +26,11 @@ RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     /tmp/install_vibe.sh && /tmp/install_opencode.sh && \
+    # make global npm packages writable by the non-root 'runner' user (uid 1000)
+    chown -R 1000:1000 /usr/lib/node_modules || true && \
+    chown -R 1000:1000 /usr/local/lib/node_modules || true && \
+    # ensure global binaries are executable by runner
+    find /usr/local/bin /usr/bin -maxdepth 1 -type f -exec chmod a+rx {} + || true && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
