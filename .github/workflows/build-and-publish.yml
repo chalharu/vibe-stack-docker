@@ -26,7 +26,7 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build image
+      - name: Build image (load into runner for smoke test)
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -36,6 +36,7 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:latest
           push: false
+          load: true
 
       - name: Run smoke test
         run: ./ci/smoke_test.sh ghcr.io/${{ github.repository }}:latest
