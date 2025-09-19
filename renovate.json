@@ -1,0 +1,18 @@
+{
+  "extends": ["config:base"],
+  "automerge": true,
+  "automergeType": "pr",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["major"]
+    }
+  ],
+  "enabledManagers": ["npm", "cargo", "dockerfile", "github-actions", "regex", "apt"]
+}
