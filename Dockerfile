@@ -18,6 +18,16 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path && \
     /usr/local/cargo/bin/rustup component add rust-src rustfmt clippy llvm-tools rust-analysis || true && \
     /usr/local/cargo/bin/rustup target add aarch64-unknown-none || true
 
+# Install Node.js (Node 20 LTS) and global npm packages (vibe-kanban, opencode-ai)
+# Use install helper scripts so package logic is visible and editable in repo
+COPY docker/install_vibe.sh /tmp/install_vibe.sh
+COPY docker/install_opencode.sh /tmp/install_opencode.sh
+RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get update && apt-get install -y nodejs && \
+    /tmp/install_vibe.sh && /tmp/install_opencode.sh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN useradd -m -u 1000 runner || true
 
