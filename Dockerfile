@@ -24,15 +24,39 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     rm -rf /var/lib/apt/lists/*
 
 # Install rustup and toolchains (stable + nightly) and common components
-ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo PATH=/usr/local/cargo/bin:$PATH
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path && \
-    /usr/local/cargo/bin/rustup default stable && \
-    /usr/local/cargo/bin/rustup toolchain install nightly || true && \
-    # Add components for stable and nightly toolchains (best-effort)
-    /usr/local/cargo/bin/rustup component add --toolchain stable rust-src rustfmt clippy llvm-tools rust-analysis || true && \
-    /usr/local/cargo/bin/rustup component add --toolchain nightly rust-src rustfmt clippy llvm-tools rust-analysis || true && \
-    # Add common aarch64 targets
-    /usr/local/cargo/bin/rustup target add aarch64-unknown-linux-gnu aarch64-unknown-none || true
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+
+# Create cache-friendly directories under /usr/local so they can be reused as
+# Docker BuildKit cache mounts. Example usage when BuildKit is enabled:
+#   RUN --mount=type=cache,target=/usr/local/cargo/registry \
+#       --mount=type=cache,target=/usr/local/cargo/git \
+#       /usr/local/cargo/bin/cargo fetch --manifest-path=/work/Cargo.toml
+RUN set -eux; \
+    mkdir -p /usr/local/cargo /usr/local/rustup /usr/local/cargo/registry /usr/local/cargo/git; \
+    chown -R root:root /usr/local/cargo /usr/local/rustup; \
+    chmod -R a+rX /usr/local/cargo /usr/local/rustup
+
+# Install rustup via the official installer and install stable + nightly toolchains.
+# Add common components where available and register aarch64 targets. Use
+# best-effort (ignore failures) for components/targets that may be absent for a
+# particular toolchain to keep the Docker build resilient.
+RUN set -eux; \
+    curl -sSfL https://sh.rustup.rs -o /tmp/rustup-init.sh; \
+    /bin/sh /tmp/rustup-init.sh -y --no-modify-path; \
+    rm -f /tmp/rustup-init.sh; \
+    export PATH=/usr/local/cargo/bin:$PATH; \
+    rustup --version; \
+    rustup default stable; \
+    rustup toolchain install nightly || true; \
+    rustup component add --toolchain stable rust-src rustfmt clippy || true; \
+    rustup component add --toolchain nightly rust-src rustfmt clippy || true; \
+    rustup component add --toolchain nightly rust-analysis llvm-tools || true; \
+    rustup target add aarch64-unknown-linux-gnu aarch64-unknown-none --toolchain stable || true; \
+    rustup target add aarch64-unknown-linux-gnu aarch64-unknown-none --toolchain nightly || true; \
+    chown -R 1000:1000 /usr/local/cargo /usr/local/rustup; \
+    rustup show || true
 
 # Ensure QEMU binfmt handlers are visible (qemu-user-static registers them),
 # additional runtime registration may be required by the container runtime.
