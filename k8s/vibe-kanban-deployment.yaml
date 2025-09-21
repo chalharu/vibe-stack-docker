@@ -9,6 +9,16 @@ spec:
     requests:
       storage: 1Gi
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vibe-kanban-config
+data:
+  PORT: "8080"
+  HOST: "0.0.0.0"
+  DATA_DIR: "/home/runner/.local/share/vibe-kanban"
+  VIBE_BIN: "vibe-kanban"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,15 +35,24 @@ spec:
     spec:
       containers:
         - name: vibe-kanban
-          image: ghcr.io/chalharu/vibe-stack-docker:latest
+          image: ghcr.io/<OWNER>/<REPO>:<tag>
           imagePullPolicy: IfNotPresent
-          env:
-            - name: PORT
-              value: "8080"
-            - name: HOST
-              value: "0.0.0.0"
+          envFrom:
+            - configMapRef:
+                name: vibe-kanban-config
+                optional: true
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+            successThreshold: 1
           volumeMounts:
             - name: vibe-data
               mountPath: /home/runner/.local/share/vibe-kanban

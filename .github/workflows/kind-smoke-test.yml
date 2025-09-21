@@ -1,0 +1,76 @@
+name: Kubernetes smoke test (kind)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - "001-vibe-kanban-kubernetes"
+      - "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kind-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kind-smoke:
+    name: Kind smoke test
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}:test-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up kind
+        uses: engineerd/setup-kind@v0.11.0
+        with:
+          version: v0.20.0
+
+      - name: Build Docker image
+        run: |
+          docker build -t "$IMAGE" .
+
+      - name: Load image into kind
+        run: |
+          kind load docker-image "$IMAGE"
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Prepare manifests for kind and apply
+        run: |
+          # Remove the top PersistentVolumeClaim document (kind often lacks a provisioner)
+          # Replace image placeholder and switch PVC volume to emptyDir for kind tests.
+          python - <<'PY'
+import os, re
+IMAGE = os.environ['IMAGE']
+path = 'k8s/vibe-kanban-deployment.yaml'
+text = open(path).read()
+# Remove first document (PVC) up to the first '---' separator
+text = re.sub(r'(?s)^.*?---\n', '', text, count=1)
+# Replace placeholder image with the test image
+text = text.replace('ghcr.io/<OWNER>/<REPO>:<tag>', IMAGE)
+# Convert persistentVolumeClaim + claimName -> emptyDir: {}
+text = re.sub(r'(?m)^(?P<indent>[ \t]*)persistentVolumeClaim:[ \t]*\n(?P<indent2>[ \t]*)claimName:[^\n]*\n?',
+              lambda m: f"{m.group('indent')}emptyDir: {{}}\n",
+              text)
+open('k8s/vibe-kanban-deployment-applied.yaml', 'w').write(text)
+print('Wrote k8s/vibe-kanban-deployment-applied.yaml')
+PY
+
+          kubectl apply -f k8s/vibe-kanban-deployment-applied.yaml
+
+      - name: Wait for deployment to become ready
+        run: |
+          kubectl rollout status deployment/vibe-kanban --timeout=120s
+
+      - name: In-cluster smoke test (curl /api/health)
+        run: |
+          kubectl run --rm --restart=Never test-curl --image=curlimages/curl:latest -- /bin/sh -c 'curl -sSf http://vibe-kanban:8080/api/health'
