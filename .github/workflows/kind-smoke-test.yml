@@ -82,7 +82,24 @@ jobs:
       - name: In-cluster smoke test (curl /api/health)
         run: |
           set -euxo pipefail
-          kubectl run --rm --restart=Never test-curl --image=curlimages/curl:latest -- /bin/sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do if curl -sSf http://vibe-kanban:8080/api/health; then echo 'health OK'; exit 0; else echo 'retrying...'; sleep 2; fi; done; echo 'health check failed'; exit 1"
+          kubectl run test-curl --restart=Never --image=curlimages/curl:latest -- /bin/sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do if curl -sSf http://vibe-kanban:8080/api/health; then echo 'health OK'; exit 0; else echo 'retrying...'; sleep 2; fi; done; echo 'health check failed'; exit 1"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            phase=$(kubectl get pod test-curl -o jsonpath='{.status.phase}' || echo "")
+            echo "pod phase: $phase"
+            if [ "$phase" = "Succeeded" ] || [ "$phase" = "Failed" ]; then
+              break
+            fi
+            sleep 2
+          done
+          kubectl logs pod/test-curl --tail=200 || true
+          exit_code=$(kubectl get pod test-curl -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}' 2>/dev/null || echo 1)
+          kubectl delete pod test-curl --ignore-not-found
+          if [ "$exit_code" = "0" ]; then
+            echo "in-cluster health check passed"
+          else
+            echo "in-cluster health check failed (exit: $exit_code)"
+            exit 1
+          fi
 
       - name: Show final pod state
         run: |
