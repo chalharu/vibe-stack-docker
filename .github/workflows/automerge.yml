@@ -34,7 +34,7 @@ jobs:
               )
             )
           )
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         env:
           REQUIRED_CONTEXTS: "build,Kind smoke test"
           MERGE_METHOD: squash
