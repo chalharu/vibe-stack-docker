@@ -33,7 +33,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
 
       # Cargo の registry と git をキャッシュして依存取得を高速化します。
       # キャッシュキー: `${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}`
