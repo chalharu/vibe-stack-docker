@@ -30,7 +30,7 @@
     {
       "fileMatch": ["(^|/)Dockerfile$"],
       "matchStrings": [
-        "FROM\\s+([\\w\-./:@]+)"
+        "FROM\\\\s+([\\\\w\\-./:@]+)"
       ],
       "datasourceTemplate": "docker"
     }
