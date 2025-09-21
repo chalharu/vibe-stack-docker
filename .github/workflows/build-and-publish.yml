@@ -1,0 +1,152 @@
+name: Build and Publish
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - "001-vibe-kanban-kubernetes"
+      - "main"
+    tags:
+      - 'v*'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && contains(github.actor, 'renovate'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Cargo の registry と git をキャッシュして依存取得を高速化します。
+      # キャッシュキー: `${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}`
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # ビルド成果物（target ディレクトリ）をキャッシュして再ビルドを高速化します。
+      # キャッシュキー: `${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}`
+      - name: Cache cargo target
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-
+
+      - name: Determine version (semver) if available
+        id: vars
+        run: |
+          # On tag pushes GITHUB_REF is refs/tags/vX.Y.Z; on branch pushes it's refs/heads/<branch>
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+            SEMVER=${TAG#v}
+            echo "Detected tag push: $TAG -> semver $SEMVER"
+          else
+            # Fallback to nearest tag on the commit (useful when a tag exists in the repo)
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            if [ -n "$TAG" ]; then
+              SEMVER=${TAG#v}
+              echo "Found tag $TAG -> semver $SEMVER"
+            else
+              SEMVER=""
+              echo "No tag found"
+            fi
+          fi
+          echo "semver=$SEMVER" >> $GITHUB_OUTPUT
+
+      # Docker Buildx キャッシュを Buildx の registry ベースで利用します。
+      # キャッシュキー（イメージ参照）: `ghcr.io/${{ github.repository }}:buildx-cache`
+      - name: Build and load image for smoke test (runner-arch)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ghcr.io/${{ github.repository }}:test-${{ github.sha }}
+          load: true
+          push: false
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildx-cache
+
+      - name: Run smoke test (against loaded image)
+        run: ./ci/smoke_test.sh ghcr.io/${{ github.repository }}:test-${{ github.sha }}
+
+      - name: Create tag list (commit, optionally latest & semver on tag or main)
+        id: tag_list
+        run: |
+          SEMVER="${{ steps.vars.outputs.semver }}"
+          IS_MAIN=false
+          IS_TAG=false
+
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            IS_MAIN=true
+          fi
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            IS_TAG=true
+          fi
+
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          # Always push an image tagged with the commit SHA for traceability
+          echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}" >> $GITHUB_OUTPUT
+
+          # On main branch push 'latest'
+          if [ "$IS_MAIN" = "true" ]; then
+            echo "ghcr.io/${GITHUB_REPOSITORY}:latest" >> $GITHUB_OUTPUT
+          fi
+
+          # On tag push, push both the semver tag (if present) and 'latest'
+          if [ "$IS_TAG" = "true" ]; then
+            if [ -n "$SEMVER" ]; then
+              echo "ghcr.io/${GITHUB_REPOSITORY}:$SEMVER" >> $GITHUB_OUTPUT
+            fi
+            echo "ghcr.io/${GITHUB_REPOSITORY}:latest" >> $GITHUB_OUTPUT
+          fi
+
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "is_main=$IS_MAIN" >> $GITHUB_OUTPUT
+          echo "is_tag=$IS_TAG" >> $GITHUB_OUTPUT
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Docker Buildx でレイヤーキャッシュを使います。
+      # キャッシュイメージ参照（読み取り）: `ghcr.io/${{ github.repository }}:buildx-cache`
+      # キャッシュイメージ参照（書き込み）: `ghcr.io/${{ github.repository }}:buildx-cache`
+      - name: Build and push image (multi-arch)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.tag_list.outputs.tags }}
+          push: true
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildx-cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildx-cache,mode=max

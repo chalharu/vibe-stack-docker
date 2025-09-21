@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vibe-kanban-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vibe-kanban-config
+data:
+  PORT: "8080"
+  HOST: "0.0.0.0"
+  DATA_DIR: "/home/runner/.local/share/vibe-kanban"
+  VIBE_BIN: "vibe-kanban"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vibe-kanban
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vibe-kanban
+  template:
+    metadata:
+      labels:
+        app: vibe-kanban
+    spec:
+      containers:
+        - name: vibe-kanban
+          image: ghcr.io/<OWNER>/<REPO>:<tag>
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: vibe-kanban-config
+                optional: true
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+            successThreshold: 1
+          volumeMounts:
+            - name: vibe-data
+              mountPath: /home/runner/.local/share/vibe-kanban
+      volumes:
+        - name: vibe-data
+          persistentVolumeClaim:
+            claimName: vibe-kanban-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vibe-kanban
+spec:
+  type: ClusterIP
+  selector:
+    app: vibe-kanban
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP

@@ -1,0 +1,106 @@
+name: Kubernetes smoke test (kind)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - "001-vibe-kanban-kubernetes"
+      - "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kind-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kind-smoke:
+    name: Kind smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}:test-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up kind
+        uses: engineerd/setup-kind@v0.6.2
+        with:
+          version: v0.20.0
+
+      - name: Create kind cluster (if missing)
+        run: |
+          set -euxo pipefail
+          if ! command -v kind >/dev/null 2>&1; then
+            echo "kind binary not found"
+            exit 1
+          fi
+          if kind get clusters | grep -q '^kind$'; then
+            echo "kind cluster already exists"
+          else
+            kind create cluster --name kind --wait 5m
+          fi
+
+      - name: Build Docker image
+        run: |
+          docker build -t "$IMAGE" .
+
+      - name: Load image into kind
+        run: |
+          kind load docker-image "$IMAGE"
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Prepare manifests for kind and apply
+        run: |
+          set -euxo pipefail
+          python3 scripts/ci/prepare_manifests.py
+
+          echo "--- applied manifest ---"
+          sed -n '1,200p' k8s/vibe-kanban-deployment-applied.yaml || true
+          kubectl apply -f k8s/vibe-kanban-deployment-applied.yaml
+          kubectl get all -o wide || true
+
+      - name: Wait for deployment to become ready
+        run: |
+          set -euxo pipefail
+          if ! kubectl rollout status deployment/vibe-kanban --timeout=180s; then
+            echo "Rollout failed - gathering debug info"
+            kubectl describe deployment/vibe-kanban || true
+            kubectl get pods -l app=vibe-kanban -o wide || true
+            kubectl logs -l app=vibe-kanban --all-containers=true || true
+            exit 1
+          fi
+
+      - name: In-cluster smoke test (curl /api/health)
+        run: |
+          set -euxo pipefail
+          kubectl run test-curl --restart=Never --image=curlimages/curl:latest -- /bin/sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do if curl -sSf http://vibe-kanban:8080/api/health; then echo 'health OK'; exit 0; else echo 'retrying...'; sleep 2; fi; done; echo 'health check failed'; exit 1"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            phase=$(kubectl get pod test-curl -o jsonpath='{.status.phase}' || echo "")
+            echo "pod phase: $phase"
+            if [ "$phase" = "Succeeded" ] || [ "$phase" = "Failed" ]; then
+              break
+            fi
+            sleep 2
+          done
+          kubectl logs pod/test-curl --tail=200 || true
+          exit_code=$(kubectl get pod test-curl -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}' 2>/dev/null || echo 1)
+          kubectl delete pod test-curl --ignore-not-found
+          if [ "$exit_code" = "0" ]; then
+            echo "in-cluster health check passed"
+          else
+            echo "in-cluster health check failed (exit: $exit_code)"
+            exit 1
+          fi
+
+      - name: Show final pod state
+        run: |
+          kubectl get pods -l app=vibe-kanban -o wide || true
