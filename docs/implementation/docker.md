@@ -45,3 +45,31 @@
 - non-root ユーザーでのファイル権限問題: Dockerfile 内で `chown` している場所（`/usr/local/cargo` など）を確認してください。必要なら `docker run -u 0 ...` で root で起動して権限を修正できます。
 
 このドキュメントは簡潔さを優先しています。より詳細な手順や CI 設定に関する補足が必要であれば指示してください。
+
+## リリース手順（タグ付けとイメージ公開）
+
+- **目的**: CI 成功後にリポジトリにセマンティックバージョン（例: `v1.2.3`）のタグを付与し、そのタグ push をトリガーに GitHub Actions でコンテナイメージをビルド・公開（GHCR）します。`main` ブランチへの push / タグ push 時に `latest` のタグも同時に公開されます。
+
+- **ワークフロー動作概要**:
+  - ブランチ `main` への push: コミット SHA をタグにしたイメージ（`ghcr.io/<owner>/<repo>:<sha>`）と `latest` を GHCR に push します。リポジトリに既に semver タグ（`vX.Y.Z`）が存在するコミットの場合、その semver タグも同時に push されます。
+  - タグ（`v*`）の push: タグを push するとワークフローが実行され、コミット SHA タグ、セマンティックバージョン（`vX.Y.Z` の `X.Y.Z` 部分）タグ、そして `latest` が GHCR に push されます。
+
+- **手動でのタグ付け（ローカル）**:
+  1. リポジトリの `main` ブランチを最新にします: `git checkout main && git pull origin main`。
+  2. 新しいセマンティックバージョンタグを作成します（例）: `git tag -a v1.2.3 -m "Release v1.2.3"`。
+  3. タグをリモートに push します: `git push origin v1.2.3`。
+  4. タグ push をトリガーに GitHub Actions が起動し、成功すれば GHCR に `ghcr.io/<owner>/<repo>:1.2.3` と `ghcr.io/<owner>/<repo>:latest` が公開されます。
+
+- **リリースを CI で自動化する際の注意点**:
+  - GitHub Actions がタグを参照して semver を決定するため、タグは `v` プレフィックス（例: `v1.2.3`）を推奨します。ワークフローは `v` を外して `1.2.3` をイメージタグとして使います。
+  - GHCR に push するために `GITHUB_TOKEN`（デフォルトで利用）を使用しています。組織やリポジトリの権限設定によっては、より権限の高い PAT（Personal Access Token）を `secrets` に設定して使う必要がある場合があります。
+  - ワークフローは `main` ブランチと `v*` タグ push を監視しています。別ブランチや別タグ命名ルールを使いたい場合は `.github/workflows/build-and-publish.yml` を調整してください。
+
+- **リリース確認**:
+  - イメージが公開されたか確認: `docker pull ghcr.io/<owner>/<repo>:1.2.3`、`docker pull ghcr.io/<owner>/<repo>:latest`。
+  - GitHub Packages のパッケージページ（GHCR）や Actions の実行ログでビルドと push のステップを確認してください。
+
+- **ロールバック**:
+  - 間違ったタグを付けてしまった場合は、リモートのタグを削除できます: `git push --delete origin v1.2.3`。ただし、GHCR に既に公開されたイメージは別途 GitHub の UI か API で削除する必要があります。
+
+- **補足**: CI の設定や認証周り（PAT の利用など）についてサポートが必要であれば指示してください。
