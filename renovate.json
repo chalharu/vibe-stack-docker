@@ -1,17 +1,28 @@
 {
-  "extends": ["github>chalharu/renovate-config"],
+  "extends": [
+    "github>chalharu/renovate-config"
+  ],
   "branchPrefix": "renovate/",
-  "labels": ["renovate"],
+  "labels": [
+    "renovate"
+  ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["patch", "minor"],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
       "automerge": true,
       "automergeType": "pr"
     },
     {
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false,
-      "labels": ["major"]
+      "labels": [
+        "major"
+      ]
     }
   ],
   "enabledManagers": [
@@ -19,7 +30,7 @@
     "cargo",
     "dockerfile",
     "github-actions",
-    "regex"
+    "custom.regex"
   ],
   "timezone": "UTC"
 }
