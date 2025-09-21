@@ -34,8 +34,63 @@ jobs:
               )
             )
           )
-        uses: actions-ecosystem/action-auto-merge@v1
+        uses: actions/github-script@v6
+        env:
+          REQUIRED_CONTEXTS: "build,Kind smoke test"
+          MERGE_METHOD: squash
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          merge_method: squash
-          required_contexts: build
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) throw new Error('No pull_request found in context');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = pr.number;
+            const headSha = pr.head.sha;
+
+            const requiredContextsEnv = process.env.REQUIRED_CONTEXTS || '';
+            const requiredContexts = requiredContextsEnv.split(',').map(s => s.trim()).filter(Boolean);
+
+            async function getCheckRuns() {
+              const resp = await github.rest.checks.listForRef({ owner, repo, ref: headSha, per_page: 100 });
+              return resp.data.check_runs || [];
+            }
+
+            async function getStatuses() {
+              const resp = await github.rest.repos.getCombinedStatusForRef({ owner, repo, ref: headSha });
+              return resp.data.statuses || [];
+            }
+
+            const runs = await getCheckRuns();
+            const statuses = await getStatuses();
+
+            for (const ctx of requiredContexts) {
+              const run = runs.find(r => r.name === ctx);
+              if (run) {
+                if (!(run.status === 'completed' && run.conclusion === 'success')) {
+                  throw new Error(`Required check run '${ctx}' is not successful (status=${run.status}, conclusion=${run.conclusion})`);
+                }
+                continue;
+              }
+              const status = statuses.find(s => s.context === ctx);
+              if (status) {
+                if (status.state !== 'success') {
+                  throw new Error(`Required status '${ctx}' is not successful (state=${status.state})`);
+                }
+                continue;
+              }
+              throw new Error(`Required context '${ctx}' not found`);
+            }
+
+            // Re-fetch PR to get up-to-date mergeable state
+            const { data: prData } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+            if (prData.locked) throw new Error('PR is locked');
+            if (prData.state !== 'open') throw new Error('PR is not open');
+
+            const mergeMethod = process.env.MERGE_METHOD || 'squash';
+            try {
+              await github.rest.pulls.merge({ owner, repo, pull_number: prNumber, merge_method: mergeMethod });
+              console.log('PR merged successfully');
+            } catch (err) {
+              throw new Error(`Merge failed: ${err.message}`);
+            }
