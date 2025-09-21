@@ -6,15 +6,12 @@
     {
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
-      "automergeType": "pr",
-      "requiredStatusChecks": null,
-      "requiredStatusChecksWhitelist": ["build"]
+      "automergeType": "pr"
     },
     {
       "matchUpdateTypes": ["major"],
       "automerge": false,
-      "labels": ["major"],
-      "addLabels": ["major"]
+      "labels": ["major"]
     }
   ],
   "enabledManagers": [
@@ -22,18 +19,7 @@
     "cargo",
     "dockerfile",
     "github-actions",
-    "regex",
-    "apt",
-    "rustup"
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": ["(^|/)Dockerfile$"],
-      "matchStrings": [
-        "FROM\\\\s+([\\\\w\\-./:@]+)"
-      ],
-      "datasourceTemplate": "docker"
-    }
+    "regex"
   ],
   "timezone": "UTC"
 }
