@@ -1,18 +1,39 @@
 {
-  "extends": ["config:base"],
-  "automerge": true,
-  "automergeType": "pr",
+  "extends": ["github>chalharu/renovate-config"],
+  "branchPrefix": "renovate/",
+  "labels": ["renovate"],
   "packageRules": [
     {
       "matchUpdateTypes": ["patch", "minor"],
       "automerge": true,
-      "automergeType": "pr"
+      "automergeType": "pr",
+      "requiredStatusChecks": null,
+      "requiredStatusChecksWhitelist": ["build"]
     },
     {
       "matchUpdateTypes": ["major"],
       "automerge": false,
-      "labels": ["major"]
+      "labels": ["major"],
+      "addLabels": ["major"]
     }
   ],
-  "enabledManagers": ["npm", "cargo", "dockerfile", "github-actions", "regex", "apt"]
+  "enabledManagers": [
+    "npm",
+    "cargo",
+    "dockerfile",
+    "github-actions",
+    "regex",
+    "apt",
+    "rustup"
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "FROM\\s+([\\w\-./:@]+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "timezone": "UTC"
 }
