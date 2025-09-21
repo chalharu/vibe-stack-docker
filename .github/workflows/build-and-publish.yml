@@ -6,15 +6,26 @@ permissions:
 
 on:
   push:
-    branches: ["001-vibe-kanban-kubernetes", "main"]
+    branches:
+      - "001-vibe-kanban-kubernetes"
+      - "main"
   pull_request:
-    types: [opened, synchronize, reopened]
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && contains(github.actor, 'renovate'))
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -30,19 +41,24 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine version (semver) if available
+        id: vars
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$TAG" ]; then
+            SEMVER=${TAG#v}
+            echo "Found tag $TAG -> semver $SEMVER"
+          else
+            SEMVER=""
+            echo "No tag found"
+          fi
+          echo "semver=$SEMVER" >> $GITHUB_OUTPUT
 
       - name: Build and load image for smoke test (runner-arch)
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
-          # omit platforms to build for the runner's architecture and load it locally
           tags: ghcr.io/${{ github.repository }}:test-${{ github.sha }}
           load: true
           push: false
@@ -50,13 +66,39 @@ jobs:
       - name: Run smoke test (against loaded image)
         run: ./ci/smoke_test.sh ghcr.io/${{ github.repository }}:test-${{ github.sha }}
 
+      - name: Create tag list (commit, optionally latest & semver only on main)
+        id: tag_list
+        run: |
+          SEMVER="${{ steps.vars.outputs.semver }}"
+          IS_MAIN=false
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            IS_MAIN=true
+          fi
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          if [ "$IS_MAIN" = "true" ]; then
+            echo "ghcr.io/${GITHUB_REPOSITORY}:latest" >> $GITHUB_OUTPUT
+            if [ -n "$SEMVER" ]; then
+              echo "ghcr.io/${GITHUB_REPOSITORY}:$SEMVER" >> $GITHUB_OUTPUT
+            fi
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "is_main=$IS_MAIN" >> $GITHUB_OUTPUT
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push image (multi-arch)
+        if: github.event_name == 'push'
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.tag_list.outputs.tags }}
           push: true
