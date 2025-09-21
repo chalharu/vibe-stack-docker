@@ -61,24 +61,7 @@ jobs:
       - name: Prepare manifests for kind and apply
         run: |
           set -euxo pipefail
-          python - <<'PY'
-import os, re
-IMAGE = os.environ['IMAGE']
-path = 'k8s/vibe-kanban-deployment.yaml'
-text = open(path).read()
-# If there's a leading PVC document, drop it (keep ConfigMap/Deployment/Service)
-if '---' in text:
-    parts = text.split('---', 1)
-    text = parts[1]
-# Replace any ghcr.io image reference with the test image (covers defaults/placeholders)
-text = re.sub(r'ghcr\.io/[^:\s]+/[^:\s]+:[^\s\n]+', IMAGE, text)
-# Convert persistentVolumeClaim -> emptyDir (for kind)
-text = re.sub(r'(?m)^(?P<indent>[ \t]*)persistentVolumeClaim:[ \t]*\n(?P<indent2>[ \t]*)claimName:[^\n]*\n?',
-              lambda m: f"{m.group('indent')}emptyDir: {{}}\n",
-              text)
-open('k8s/vibe-kanban-deployment-applied.yaml', 'w').write(text)
-print('Wrote k8s/vibe-kanban-deployment-applied.yaml')
-PY
+          python3 scripts/ci/prepare_manifests.py
 
           echo "--- applied manifest ---"
           sed -n '1,200p' k8s/vibe-kanban-deployment-applied.yaml || true
