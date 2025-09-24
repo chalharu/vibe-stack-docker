@@ -73,6 +73,10 @@ if command -v "ssh-keygen" >/dev/null 2>&1; then
   [ -f "/home/runner/.ssh/ssh_host_dsa_key" ] || ssh-keygen -t dsa  -N '' -f /home/runner/.ssh/ssh_host_dsa_key
   [ -f "/home/runner/.ssh/ssh_host_ed25519_key" ] || ssh-keygen -t ed25519  -N '' -f /home/runner/.ssh/ssh_host_ed25519_key
   [ -f "/home/runner/.ssh/ssh_host_ecdsa_key" ] || ssh-keygen -t ecdsa  -N '' -f /home/runner/.ssh/ssh_host_ecdsa_key
+  chmod 600 /home/runner/.ssh/ssh_host_rsa_key \
+    /home/runner/.ssh/ssh_host_dsa_key \
+    /home/runner/.ssh/ssh_host_ed25519_key \
+    /home/runner/.ssh/ssh_host_ecdsa_key
   /usr/sbin/sshd \
     -h /home/runner/.ssh/ssh_host_rsa_key \
     -h /home/runner/.ssh/ssh_host_dsa_key \
