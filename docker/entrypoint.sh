@@ -11,7 +11,7 @@ set -euo pipefail
 #   GRACE_PERIOD- seconds to wait for graceful shutdown before SIGKILL (default: 10).
 
 PORT=${PORT:-8080}
-SSHD_PORT=${PORT:-8022}
+SSHD_PORT=${SSHD_PORT:-8022}
 HOST=${HOST:-0.0.0.0}
 VIBE_BIN=${VIBE_BIN:-vibe-kanban}
 GRACE_PERIOD=${GRACE_PERIOD:-10}
