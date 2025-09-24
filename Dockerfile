@@ -97,5 +97,5 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 WORKDIR /home/runner
 USER runner
 
-EXPOSE 8080
+EXPOSE 8080 8022
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -5,12 +5,14 @@ set -euo pipefail
 #
 # Environment variables:
 #   PORT        - port to listen on (default: 8080). Vibe Kanban reads this env var; do not pass --port.
+#   SSHD_PORT   - port for sshd to listen on (default: 8022).
 #   HOST        - host/address to bind to (default: 0.0.0.0).
 #   DATA_DIR    - persistent data directory (default: /home/runner/.local/share/vibe-kanban).
 #   VIBE_BIN    - path/name of the vibe-kanban executable (default: vibe-kanban).
 #   GRACE_PERIOD- seconds to wait for graceful shutdown before SIGKILL (default: 10).
 
 PORT=${PORT:-8080}
+SSHD_PORT=${PORT:-8022}
 HOST=${HOST:-0.0.0.0}
 DATA_DIR=${DATA_DIR:-/home/runner/.local/share/vibe-kanban}
 VIBE_BIN=${VIBE_BIN:-vibe-kanban}
@@ -28,7 +30,8 @@ if command -v "ssh-keygen" >/dev/null 2>&1; then
     -h /home/runner/.ssh/ssh_host_rsa_key \
     -h /home/runner/.ssh/ssh_host_dsa_key \
     -h /home/runner/.ssh/ssh_host_ed25519_key \
-    -h /home/runner/.ssh/ssh_host_ecdsa_key
+    -h /home/runner/.ssh/ssh_host_ecdsa_key \
+    -p ${SSHD_PORT}
 fi
 
 # Ensure data dir exists
