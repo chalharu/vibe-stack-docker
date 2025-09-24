@@ -20,7 +20,6 @@ export PORT HOST DATA_DIR
 
 if command -v "ssh-keygen" >/dev/null 2>&1; then
   ssh-keygen -A
-  mkdir -p /run/sshd
   /usr/sbin/sshd
 fi
 

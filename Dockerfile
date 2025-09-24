@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim openssh-server gzip xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /var/run/sshd
+
 # Install GitHub CLI (gh)
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
