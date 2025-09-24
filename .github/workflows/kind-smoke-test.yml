@@ -32,7 +32,7 @@ jobs:
       - name: Set up kind
         uses: engineerd/setup-kind@v0.6.2
         with:
-          version: v0.20.0
+          version: v0.24.0
 
       - name: Create kind cluster (if missing)
         run: |
