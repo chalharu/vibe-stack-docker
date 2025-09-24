@@ -19,8 +19,16 @@ GRACE_PERIOD=${GRACE_PERIOD:-10}
 export PORT HOST DATA_DIR
 
 if command -v "ssh-keygen" >/dev/null 2>&1; then
-  ssh-keygen -A
-  /usr/sbin/sshd
+  # ssh-keygen -t rsa1 -N '' -f /home/runner/.ssh/ssh_host_key
+  ssh-keygen -t rsa  -N '' -f /home/runner/.ssh/ssh_host_rsa_key
+  ssh-keygen -t dsa  -N '' -f /home/runner/.ssh/ssh_host_dsa_key
+  ssh-keygen -t ed25519  -N '' -f /home/runner/.ssh/ssh_host_ed25519_key
+  ssh-keygen -t ecdsa  -N '' -f /home/runner/.ssh/ssh_host_ecdsa_key
+  /usr/sbin/sshd \
+    -h /home/runner/.ssh/ssh_host_rsa_key \
+    -h /home/runner/.ssh/ssh_host_dsa_key \
+    -h /home/runner/.ssh/ssh_host_ed25519_key \
+    -h /home/runner/.ssh/ssh_host_ecdsa_key
 fi
 
 # Ensure data dir exists
