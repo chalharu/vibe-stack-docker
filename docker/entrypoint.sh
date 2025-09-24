@@ -83,7 +83,8 @@ if command -v "ssh-keygen" >/dev/null 2>&1; then
     -h /home/runner/.ssh/ssh_host_ed25519_key \
     -h /home/runner/.ssh/ssh_host_ecdsa_key \
     -p ${SSHD_PORT} \
-    -o PidFile=/home/runner/.sshd.pid
+    -o PidFile=/home/runner/.sshd.pid \
+    -o StrictModes=no
   sshd_pid=$(cat /home/runner/.sshd.pid)
 fi
 
