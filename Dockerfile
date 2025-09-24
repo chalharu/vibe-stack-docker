@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl gnupg2 git build-essential cmake pkg-config \
     lsb-release software-properties-common apt-transport-https \
     binfmt-support qemu-user-static qemu-system-arm qemu-system-aarch64 \
-    gdb-multiarch gcc-aarch64-linux-gnu python3 python3-pip unzip wget && \
+    gdb-multiarch gcc-aarch64-linux-gnu python3 python3-pip unzip wget \
+    vim openssh-server gzip xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI (gh)
@@ -66,10 +67,13 @@ RUN update-binfmts --display || true
 # Use install helper scripts so package logic remains visible and editable in repo
 COPY docker/install_vibe.sh /tmp/install_vibe.sh
 COPY docker/install_opencode.sh /tmp/install_opencode.sh
-RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh && \
+COPY docker/install_codex.sh /tmp/install_codex.sh
+RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh /tmp/install_codex.sh && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
-    /tmp/install_vibe.sh && /tmp/install_opencode.sh && \
+    /tmp/install_vibe.sh && \
+    /tmp/install_opencode.sh && \
+    /tmp/install_codex.sh && \
     # make global npm packages writable by the non-root 'runner' user (uid 1000)
     chown -R 1000:1000 /usr/lib/node_modules || true && \
     chown -R 1000:1000 /usr/local/lib/node_modules || true && \
@@ -80,19 +84,15 @@ RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh && \
 # Create non-root user
 RUN useradd -m -u 1000 runner || true
 
-# Ensure HOME is set for the non-root user and create persistent data dir
+# Ensure HOME is set for the non-root user
 ENV HOME=/home/runner
-RUN mkdir -p /home/runner/.local/share/vibe-kanban && \
-    chown -R 1000:1000 /home/runner || true
-
-# Allow persistence of vibe-kanban data (mapped to $HOME/.local/share/vibe-kanban)
-VOLUME ["/home/runner/.local/share/vibe-kanban"]
+VOLUME ["/home/runner"]
 
 # Copy entrypoint
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-WORKDIR /work
+WORKDIR /home/runner
 USER runner
 
 EXPOSE 8080
