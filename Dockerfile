@@ -70,12 +70,14 @@ RUN update-binfmts --display || true
 COPY docker/install_vibe.sh /tmp/install_vibe.sh
 COPY docker/install_opencode.sh /tmp/install_opencode.sh
 COPY docker/install_codex.sh /tmp/install_codex.sh
+COPY docker/install_claude.sh /tmp/install_claude.sh
 RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh /tmp/install_codex.sh && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     /tmp/install_vibe.sh && \
     /tmp/install_opencode.sh && \
     /tmp/install_codex.sh && \
+    /tmp/install_claude.sh && \
     # make global npm packages writable by the non-root 'runner' user (uid 1000)
     chown -R 1000:1000 /usr/lib/node_modules || true && \
     chown -R 1000:1000 /usr/local/lib/node_modules || true && \
