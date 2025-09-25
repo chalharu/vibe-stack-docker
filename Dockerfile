@@ -71,7 +71,7 @@ COPY docker/install_vibe.sh /tmp/install_vibe.sh
 COPY docker/install_opencode.sh /tmp/install_opencode.sh
 COPY docker/install_codex.sh /tmp/install_codex.sh
 COPY docker/install_claude.sh /tmp/install_claude.sh
-RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh /tmp/install_codex.sh && \
+RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh /tmp/install_codex.sh /tmp/install_claude.sh && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     /tmp/install_vibe.sh && \
