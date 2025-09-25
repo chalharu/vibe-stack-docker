@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lsb-release software-properties-common apt-transport-https \
     binfmt-support qemu-user-static qemu-system-arm qemu-system-aarch64 \
     gdb-multiarch gcc-aarch64-linux-gnu python3 python3-pip unzip wget \
-    vim openssh-server gzip xz-utils && \
+    vim openssh-server gzip xz-utils screen && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/run/sshd
