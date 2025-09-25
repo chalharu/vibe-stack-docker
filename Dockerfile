@@ -86,7 +86,7 @@ RUN chmod +x /tmp/install_vibe.sh /tmp/install_opencode.sh /tmp/install_codex.sh
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd -m -u 1000 runner || true
+RUN useradd -m -u 1000 -s /bin/bash runner || true
 
 # Ensure HOME is set for the non-root user
 ENV HOME=/home/runner
