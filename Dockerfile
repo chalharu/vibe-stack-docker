@@ -61,6 +61,8 @@ RUN set -eux; \
     chown -R 1000:1000 /usr/local/cargo /usr/local/rustup; \
     rustup show || true
 
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh
+
 # Ensure QEMU binfmt handlers are visible (qemu-user-static registers them),
 # additional runtime registration may be required by the container runtime.
 RUN update-binfmts --display || true
