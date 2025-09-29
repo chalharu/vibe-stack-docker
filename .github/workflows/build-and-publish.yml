@@ -31,10 +31,10 @@ jobs:
       
       - name: Change Docker Container Folder
         run: |
-          rm -rf ${{ github.workspace }}/docker || true
-          mkdir -p ${{ github.workspace }}/docker
-          rsync -aXS /var/lib/docker/. ${{ github.workspace }}/docker/
-          mount -o bind ${{ github.workspace }}/docker /var/lib/docker
+          sudo rm -rf ${{ github.workspace }}/.docker-containers || true
+          sudo mkdir -p ${{ github.workspace }}/.docker-containers
+          sudo rsync -aXS /var/lib/docker/. ${{ github.workspace }}/.docker-containers/
+          sudo mount -o bind ${{ github.workspace }}/.docker-containers /var/lib/docker
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
