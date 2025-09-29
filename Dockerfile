@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # T006: Debian-based image for development/test with Rust, QEMU, and tools
 # - Installs Git, GitHub CLI, QEMU, GDB (multiarch), build-essential, cmake
