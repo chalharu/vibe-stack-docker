@@ -34,18 +34,10 @@ jobs:
         with:
           version: v0.24.0
 
-      - name: Create kind cluster (if missing)
+      - name: Check Disk Space
         run: |
-          set -euxo pipefail
-          if ! command -v kind >/dev/null 2>&1; then
-            echo "kind binary not found"
-            exit 1
-          fi
-          if kind get clusters | grep -q '^kind$'; then
-            echo "kind cluster already exists"
-          else
-            kind create cluster --name kind --wait 5m
-          fi
+          docker system df
+          df -h
 
       - name: Build Docker image
         run: |
