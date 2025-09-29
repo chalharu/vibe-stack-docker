@@ -27,7 +27,9 @@ echo "Image: ${IMAGE}"
 echo "Container: ${CONTAINER}"
 
 echo "Attempting to pull image ${IMAGE}..."
-if docker pull "${IMAGE}"; then
+if docker images -q "${IMAGE}"; then
+  echo "Image ${IMAGE} is loaded"
+elif docker pull "${IMAGE}"; then
   echo "Pulled image ${IMAGE}"
 else
   echo "Pull failed; attempting to build image from repository Dockerfile..."
