@@ -11,10 +11,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Basic deps (git, build tools, qemu, gdb with cross support)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl gnupg2 git build-essential cmake pkg-config \
-    lsb-release software-properties-common apt-transport-https \
+    lsb-release apt-transport-https \
     binfmt-support qemu-user-static qemu-system-arm qemu-system-aarch64 \
     gdb-multiarch gcc-aarch64-linux-gnu python3 python3-pip unzip wget \
-    vim openssh-server gzip xz-utils screen python3 && \
+    vim openssh-server gzip xz-utils screen python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/run/sshd
