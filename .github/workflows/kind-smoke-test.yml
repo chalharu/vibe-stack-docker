@@ -34,7 +34,7 @@ jobs:
           sudo mkdir -p /mnt/tmp/containerd
           sudo rsync -aXS /var/lib/containerd/. /mnt/tmp/containerd/
           # sudo sed -i 's|/var/lib/containerd|/mnt/tmp/containerd|g' /etc/containerd/config.toml
-          echo "root = /mnt/tmp/containerd" | tee -a /etc/containerd/config.toml
+          echo "root = /mnt/tmp/containerd" | sudo tee -a /etc/containerd/config.toml
           sudo systemctl restart containerd || sudo journalctl -xeu containerd.service
           sudo systemctl status containerd
           
