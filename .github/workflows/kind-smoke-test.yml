@@ -33,8 +33,12 @@ jobs:
           sudo rm -rf /mnt/tmp/containerd || true
           sudo mkdir -p /mnt/tmp/containerd
           sudo rsync -aXS /var/lib/containerd/. /mnt/tmp/containerd/
+          sudo rm -rf /mnt/tmp/run-containerd || true
+          sudo mkdir -p /mnt/tmp/run-containerd
+          sudo rsync -aXS /run/containerd/. /mnt/tmp/run-containerd/
           # sudo sed -i 's|/var/lib/containerd|/mnt/tmp/containerd|g' /etc/containerd/config.toml
           echo 'root = "/mnt/tmp/containerd"' | sudo tee -a /etc/containerd/config.toml
+          echo 'state = "/mnt/tmp/run-containerd"'
           sudo systemctl restart containerd || sudo journalctl -xeu containerd.service
           sudo systemctl status containerd
           
