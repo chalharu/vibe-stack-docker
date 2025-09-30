@@ -33,7 +33,7 @@ jobs:
           sudo rm -rf /mnt/tmp/containerd || true
           sudo mkdir -p /mnt/tmp/containerd
           sudo rsync -aXS /var/lib/containerd/. /mnt/tmp/containerd/
-          sudo mount -o bind /mnt/tmp/containerd /var/lib/containerd
+          sudo sed -i 's|^root = "/var/lib/containerd"|root = "/mnt/tmp/containerd"|g' /etc/containerd/config.toml
           sudo systemctl restart containerd || sudo journalctl -xeu containerd.service
           sudo systemctl status containerd
           
@@ -45,7 +45,10 @@ jobs:
       - name: Check Disk Space
         run: |
           docker system df
+          echo "---------------"
           df -h
+          echo "---------------"
+          mount
 
       - name: Build Docker image
         run: |
