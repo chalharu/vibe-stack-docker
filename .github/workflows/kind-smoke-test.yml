@@ -53,7 +53,7 @@ jobs:
           echo "---------------"
           mount
           echo "---------------"
-          kubectl get nodes -o wide
+          kubectl describe nodes
 
       - name: Build Docker image
         run: |
