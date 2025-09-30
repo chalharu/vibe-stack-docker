@@ -42,6 +42,9 @@ jobs:
         with:
           version: v0.24.0
 
+      - name: Install kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+
       - name: Check Disk Space
         run: |
           docker system df
@@ -49,6 +52,8 @@ jobs:
           df -h
           echo "---------------"
           mount
+          echo "---------------"
+          kubectl get nodes -o wide
 
       - name: Build Docker image
         run: |
@@ -57,9 +62,6 @@ jobs:
       - name: Load image into kind
         run: |
           kind load docker-image "$IMAGE"
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
 
       - name: Prepare manifests for kind and apply
         run: |
