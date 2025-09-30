@@ -30,16 +30,10 @@ jobs:
           
       - name: Change Docker Container Folder
         run: |
-          sudo rm -rf ${{ github.workspace }}/.docker-containers || true
-          sudo mkdir -p ${{ github.workspace }}/.docker-containers
-          sudo rsync -aXS /var/lib/docker/. ${{ github.workspace }}/.docker-containers/
-          sudo mount -o bind ${{ github.workspace }}/.docker-containers /var/lib/docker
-          sudo rm -rf ${{ github.workspace }}/.temp-containerd || true
-          sudo mkdir -p ${{ github.workspace }}/.temp-containerd
-          sudo rsync -aXS /var/lib/containerd/. ${{ github.workspace }}/.temp-containerd/
-          sudo mount -o bind ${{ github.workspace }}/.temp-containerd /var/lib/containerd
-          sudo systemctl restart docker || sudo journalctl -xeu docker.service
-          sudo systemctl status docker
+          sudo rm -rf /mnt/tmp/containerd || true
+          sudo mkdir -p /mnt/tmp/containerd
+          sudo rsync -aXS /var/lib/containerd/. /mnt/tmp/containerd/
+          sudo mount -o bind /mnt/tmp/containerd /var/lib/containerd
           sudo systemctl restart containerd || sudo journalctl -xeu containerd.service
           sudo systemctl status containerd
           
