@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 20
     env:
       IMAGE: ghcr.io/${{ github.repository }}:test-${{ github.sha }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -39,6 +38,10 @@ jobs:
           sudo mkdir -p ${{ github.workspace }}/.temp-containerd
           sudo rsync -aXS /var/lib/containerd/. ${{ github.workspace }}/.temp-containerd/
           sudo mount -o bind ${{ github.workspace }}/.temp-containerd /var/lib/containerd
+          sudo systemctl restart docker || sudo journalctl -xeu docker.service
+          sudo systemctl status docker
+          sudo systemctl restart containerd || sudo journalctl -xeu containerd.service
+          sudo systemctl status containerd
           
       - name: Set up kind
         uses: engineerd/setup-kind@v0.6.2
