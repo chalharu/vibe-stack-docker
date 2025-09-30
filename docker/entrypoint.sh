@@ -7,24 +7,16 @@ set -euo pipefail
 #   PORT        - port to listen on (default: 8080). Vibe Kanban reads this env var; do not pass --port.
 #   SSHD_PORT   - port for sshd to listen on (default: 8022).
 #   HOST        - host/address to bind to (default: 0.0.0.0).
-#   VIBE_BIN    - path/name of the vibe-kanban executable (default: vibe-kanban).
 #   GRACE_PERIOD- seconds to wait for graceful shutdown before SIGKILL (default: 10).
 
 PORT=${PORT:-8080}
 SSHD_PORT=${SSHD_PORT:-8022}
 HOST=${HOST:-0.0.0.0}
-VIBE_BIN=${VIBE_BIN:-vibe-kanban}
 GRACE_PERIOD=${GRACE_PERIOD:-10}
 
 export PORT SSHD_PORT HOST
 
 sshd_pid=
-
-# Sanity check: ensure the binary exists
-if ! command -v "$VIBE_BIN" >/dev/null 2>&1; then
-  echo "Error: '$VIBE_BIN' not found in PATH. Ensure the package is installed." >&2
-  exit 1
-fi
 
 echo "Starting Vibe Kanban on ${HOST}:${PORT})"
 
@@ -64,7 +56,7 @@ shutdown() {
 trap 'shutdown' SIGTERM SIGINT
 
 # Start the app in the background. Note: do not pass --port; the app reads PORT from env.
-"$VIBE_BIN" &
+npx vibe-kanban &
 child_pid=$!
 
 if command -v "ssh-keygen" >/dev/null 2>&1; then
