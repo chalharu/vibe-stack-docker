@@ -66,7 +66,7 @@ jobs:
       # Docker Buildx キャッシュを Buildx の registry ベースで利用します。
       # キャッシュキー（イメージ参照）: `ghcr.io/${{ github.repository }}:buildx-cache`
       - name: Build and load image for smoke test (runner-arch)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
           file: ./Dockerfile
@@ -126,7 +126,7 @@ jobs:
       # キャッシュイメージ参照（書き込み）: `ghcr.io/${{ github.repository }}:buildx-cache`
       - name: Build and push image (multi-arch)
         if: github.event_name == 'push'
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
           file: ./Dockerfile
