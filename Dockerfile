@@ -1,4 +1,4 @@
-FROM debian:trixie-slim
+FROM debian:trixie-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
 
 # T006: Debian-based image for development/test with Rust, QEMU, and tools
 # - Installs Git, GitHub CLI, QEMU, GDB (multiarch), build-essential, cmake
